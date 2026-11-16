@@ -1,0 +1,1 @@
+{"description":"NEON BREACH: PROTOCOL — a round-based three.js tactical FPS. Build with: node main.ts","name":"threejs-fps-02-v3","private":true,"scripts":{"build":"node main.ts","serve":"node serve.ts"},"type":"module"}
