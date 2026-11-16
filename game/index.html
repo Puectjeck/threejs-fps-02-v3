@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEON BREACH: PROTOCOL — a three.js tactical FPS</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1420;
+    font-family: "Segoe UI", system-ui, sans-serif; color: #e8f1f8; }
+  #app, #app canvas { width: 100%; height: 100%; display: block; }
+  .hud { position: fixed; pointer-events: none; z-index: 5; }
+  #topbar { top: 10px; left: 50%; transform: translateX(-50%); text-align: center; }
+  #timer { font-size: 30px; font-weight: 700; letter-spacing: 2px;
+    text-shadow: 0 2px 8px #000; }
+  #score { font-size: 15px; font-weight: 600; letter-spacing: 1px; }
+  #roundLabel, #phaseLabel { font-size: 11px; letter-spacing: 2px; color: #9fb4c6; }
+  #minimap { top: 10px; left: 10px; border: 1px solid #39434f; border-radius: 4px;
+    background: #11161d; }
+  #feed { top: 10px; right: 12px; text-align: right; font-size: 13px;
+    color: #ffd9a0; text-shadow: 0 1px 4px #000; line-height: 1.5; }
+  #bl { left: 14px; bottom: 12px; }
+  #health { font-size: 40px; font-weight: 800; text-shadow: 0 2px 8px #000; }
+  #armour { font-size: 16px; color: #9fd8ff; }
+  #br { right: 14px; bottom: 12px; text-align: right; }
+  #ammo { font-size: 34px; font-weight: 800; text-shadow: 0 2px 8px #000; }
+  #money { font-size: 18px; color: #7dff9a; font-weight: 700; }
+  #banner { top: 24%; left: 50%; transform: translateX(-50%); font-size: 30px;
+    font-weight: 800; letter-spacing: 2px; text-align: center; width: 90%;
+    text-shadow: 0 3px 12px #000; transition: opacity .3s; }
+  #plantHint { bottom: 110px; left: 50%; transform: translateX(-50%);
+    font-size: 15px; color: #ffd9a0; text-shadow: 0 1px 5px #000; }
+  #crosshair { top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px;
+    border-radius: 50%; background: #7dff9a; box-shadow: 0 0 6px #000; }
+  #hitmarker { top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 26px; color: #ffdf6b; opacity: 0; transition: opacity .09s; }
+  #hurt { inset: 0; background: radial-gradient(ellipse at center,
+    transparent 55%, rgba(255,30,30,.5) 100%); opacity: 0; transition: opacity .13s; }
+  #buyMenu { top: 50%; left: 24px; transform: translateY(-50%); width: 250px;
+    background: rgba(10, 15, 22, .88); border: 1px solid #ff8c2e; border-radius: 8px;
+    padding: 12px 14px; pointer-events: none; }
+  #buyMenu h3 { margin: 0 0 8px; font-size: 14px; letter-spacing: 2px; color: #ff8c2e; }
+  .buyrow { font-size: 14px; padding: 4px 0; border-bottom: 1px solid #223; }
+  .buykey { display: inline-block; width: 20px; color: #7dff9a; font-weight: 700; }
+  .buyprice { float: right; color: #7dff9a; }
+  #menu, #over { position: fixed; inset: 0; z-index: 9; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 35%, #1a2636 0%, #0d1420 70%);
+    text-align: center; padding: 20px; }
+  #menu h1 { font-size: 52px; margin: 0; letter-spacing: 4px; color: #ff8c2e;
+    text-shadow: 0 0 24px rgba(255,122,26,.45); }
+  #menu h2 { font-size: 17px; letter-spacing: 6px; color: #2fd6f7; margin: 4px 0 18px; }
+  #menu p { max-width: 560px; line-height: 1.55; color: #c6d6e4; font-size: 15px; }
+  #menu .keys { color: #9fb4c6; font-size: 13px; line-height: 1.9; }
+  #menu .go { margin-top: 16px; font-size: 18px; color: #7dff9a; font-weight: 700;
+    letter-spacing: 2px; animation: pulse 1.4s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  #over { display: none; background: rgba(8, 12, 18, .82); z-index: 8; }
+  .overtitle { font-size: 40px; font-weight: 800; letter-spacing: 3px; color: #ff8c2e; }
+  .overhint { margin-top: 12px; color: #7dff9a; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js" } }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<canvas id="minimap" class="hud" width="188" height="148"></canvas>
+<div id="topbar" class="hud">
+  <div id="timer">1:45</div>
+  <div id="score"></div>
+  <div id="roundLabel"></div>
+  <div id="phaseLabel"></div>
+</div>
+<div id="feed" class="hud"></div>
+<div id="bl" class="hud"><div id="health">100</div><div id="armour"></div></div>
+<div id="br" class="hud"><div id="ammo">12 / 96</div><div id="money">$800</div></div>
+<div id="banner" class="hud"></div>
+<div id="plantHint" class="hud"></div>
+<div id="crosshair" class="hud"></div>
+<div id="hitmarker" class="hud">✕</div>
+<div id="hurt" class="hud"></div>
+<div id="buyMenu" class="hud" style="display:none">
+  <h3>BUY — VANGUARD SUPPLY</h3>
+  <div id="buyItems"></div>
+</div>
+
+<div id="menu">
+  <h1>NEON BREACH</h1>
+  <h2>P R O T O C O L</h2>
+  <p>A round-based tactical shooter on Foundry Nine. VANGUARD attacks:
+    carry the charge to the Coolant Yard (A) or the Reactor Hall (B), plant
+    it, and hold. SENTINEL defends both sites. Win rounds by elimination or
+    by the objective; earn money, buy rifles, armour and grenades between
+    rounds. First squad to 9 rounds takes the match — sides swap at half.</p>
+  <div class="keys">
+    WASD move · MOUSE aim · CLICK fire · SHIFT sprint · C crouch · R reload<br>
+    1/2 weapons · 4 frag · 5 smoke · 6 flash · E plant / defuse · B buy menu
+  </div>
+  <div class="go">CLICK TO PLAY</div>
+</div>
+<div id="over" class="hud" style="display:none"></div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
